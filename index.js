@@ -2,26 +2,21 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 
-const host = "0.0.0.0";
-const porta = 3000;
+const app = express(); 
 
 let listaProdutos = [];
 
-const server = express();
-
-server.use(session({
+app.use(session({
     secret: "MinhaChaveUltraSecreta",
     resave: true,
     saveUninitialized: true,
     cookie: { maxAge: 1000 * 60 * 15 }
 }));
 
-server.use(express.urlencoded({ extended: true }));
-server.use(cookieParser());
-
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // verificar login
-
 function verificarLogin(req, res, next) {
     if (req.session?.usuario?.logado) {
         next();
@@ -33,10 +28,8 @@ function verificarLogin(req, res, next) {
     }
 }
 
-
-// get login
-
-server.get("/login", (req, res) => {
+// LOGIN GET
+app.get("/login", (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html>
@@ -62,13 +55,11 @@ server.get("/login", (req, res) => {
     `);
 });
 
-//login post
-
-server.post("/login", (req, res) => {
+// LOGIN POST
+app.post("/login", (req, res) => {
     const { usuario, senha } = req.body;
 
     if (usuario === "admin" && senha === "admin") {
-
         req.session.usuario = {
             nome: "Administrador",
             logado: true
@@ -77,7 +68,6 @@ server.post("/login", (req, res) => {
         res.redirect("/cadastroProduto");
 
     } else {
-
         res.send(`
             <h3>Usuário ou senha inválidos!</h3>
             <a href="/login">Tentar novamente</a>
@@ -85,19 +75,16 @@ server.post("/login", (req, res) => {
     }
 });
 
-// logout
-server.get("/logout", (req, res) => {
+// LOGOUT
+app.get("/logout", (req, res) => {
     req.session.destroy();
     res.redirect("/login");
 });
 
-//cadastro
-
-server.get("/cadastroProduto", verificarLogin, (req, res) => {
+// CADASTRO
+app.get("/cadastroProduto", verificarLogin, (req, res) => {
 
     let ultimoAcesso = req.cookies?.ultimoAcesso || "Primeiro acesso";
-
-    // atualizar cookie
     const data = new Date();
     res.cookie("ultimoAcesso", data.toLocaleString());
 
@@ -166,8 +153,8 @@ server.get("/cadastroProduto", verificarLogin, (req, res) => {
     `);
 });
 
-// cadastrar prod
-server.post("/adicionarProduto", verificarLogin, (req, res) => {
+// ADD PRODUTO
+app.post("/adicionarProduto", verificarLogin, (req, res) => {
 
     const { codigo, descricao, precoCusto, precoVenda, validade, estoque, fabricante } = req.body;
 
@@ -184,7 +171,7 @@ server.post("/adicionarProduto", verificarLogin, (req, res) => {
     res.redirect("/cadastroProduto");
 });
 
-// table
+// TABELA
 function montarTabelaProdutos() {
     if (listaProdutos.length === 0) {
         return "<p>Nenhum produto cadastrado ainda.</p>";
@@ -228,7 +215,12 @@ function montarTabelaProdutos() {
     return tabela;
 }
 
+export default app;
 
-server.listen(porta, host, () => {
-    console.log(`Servidor rodando em http://${host}:${porta}`);
-});
+if (!process.env.VERCEL) {
+    const host = "0.0.0.0";
+    const porta = 3000;
+    app.listen(porta, host, () => {
+        console.log(`Servidor rodando em http://${host}:${porta}`);
+    });
+}
