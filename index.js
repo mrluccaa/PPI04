@@ -6,6 +6,12 @@ const app = express();
 
 let listaProdutos = [];
 
+
+app.get("/", (req, res) => {
+    
+    res.redirect("/login");
+});
+
 app.use(session({
     secret: "MinhaChaveUltraSecreta",
     resave: true,
